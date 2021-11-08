@@ -42,7 +42,7 @@ int main()
 {
     mgv_load();
 
-    mgv_create_frame(&frame, 150, 100);
+    mgv_create_frame(&frame, 40, 20);
     mgv_bind_frame(frame);
 
     mgv_pipeline_shader_info_t shader_info = {

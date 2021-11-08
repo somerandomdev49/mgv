@@ -3,6 +3,30 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <stdio.h>
+#include <time.h>
+#include <errno.h>
+
+int msleep(long msec)
+{
+    struct timespec ts;
+    int res;
+
+    if (msec < 0)
+    {
+        errno = EINVAL;
+        return -1;
+    }
+
+    ts.tv_sec = msec / 1000;
+    ts.tv_nsec = (msec % 1000) * 1000000;
+
+    do {
+        res = nanosleep(&ts, &ts);
+    } while (res && errno == EINTR);
+
+    return res;
+}
 
 static void dput(mgv_frame_t* f, uint32_t col, const iv2 loc)
 {
@@ -37,6 +61,8 @@ static void dline(
     }
 }
 
+static inline i32 max_i32_(i32 a, i32 b) { return a > b ? a : b; }
+static inline i32 min_i32_(i32 a, i32 b) { return a > b ? b : a; }
 static inline void swap_u8_(uint8_t* a, uint8_t* b)
 {
     uint8_t t = *a;
@@ -57,80 +83,32 @@ static void dtri(
     if(tri[1][1] > tri[2][1] || tri[1][0] > tri[2][0]) swap_u8_(&ts1, &ts2);
     if(tri[0][1] > tri[1][1] || tri[0][0] > tri[1][0]) swap_u8_(&ts0, &ts1);
 
-    i32 d1 = tri[ts1][1] - tri[ts0][1], d2 = tri[ts2][1] - tri[ts1][1];
-
-    // bresenham algo's data for long line:
-    iv2 Ldelta; iv2_iv2_sub_iv2(Ldelta, tri[ts0], tri[ts2]); iv2_map(Ldelta, abs);
-    Ldelta[1] = -Ldelta[1];
-    iv2 Lslope = { tri[ts0][0] < tri[ts2][0] ? 1 : -1, 1 };
-
-    i32 Lerr = Ldelta[0] + Ldelta[1];
-    iv2 Lcur; iv2_cpy(Lcur, tri[ts0]);
+    iv2 a = tri[ts0], b = tri[ts1], c = tri[ts2];
 
     // long side on the right.
-    if(tri[ts1][0] < tri[ts0][0] || tri[ts1][0] < tri[ts2][0])
+    if(b[0] < a[0] || b[0] < c[0])
     {
-        { // upper line.
-            iv2 delta; iv2_iv2_sub_iv2(delta, tri[ts1], tri[ts0]); iv2_map(delta, abs);
-            delta[1] = -delta[1];
-            // iv2 slope = { a[0] < b[0] ? 1 : -1, a[1] < b[1] ? 1 : -1 };
-
-            i32 err = delta[0] + delta[1];
-            iv2 cur; iv2_cpy(cur, tri[ts0]);
-
-            while(1)
+        // Fill the first triangle with flat bottom.
+        {
+            i32 dx = a[0] - b[0], Ldx = a[0] - c[0];
+            i32 dy = a[1] - b[1], LdY = a[1] - c[1];
+            float sf = 1.0f / dy, Lsf = 1.0f / Ldy;
+            float f = 0.0f, Lf = 0.0f;
+            for(i32 y = a[1]; y < b[1]; ++y)
             {
-                for(i32 x = cur[0]; x < Lcur[0]; ++x)
-                {
-                    iv2 ccur = { x, Lcur[1] };
-                    mgv_render_color_val_t v = col_func(ccur);
-                    if(!v.discard) dput(f, v.value, ccur);
-                }
-                if(cur[0] == tri[ts1][0] && cur[1] == tri[ts1][1]) break;
-
-                i32 err2 = err << 1;
-                if(err2 >= delta[1]) { err += delta[1]; cur[0] -= 1; }
-                if(err2 <= delta[0]) { err += delta[0]; cur[1] += 1; }
-
-                err2 = Lerr << 1;
-                if(err2 >= Ldelta[1]) { Lerr += Ldelta[1]; Lcur[0] += Lslope[0]; }
-                if(err2 <= Ldelta[0]) { Lerr += Ldelta[0]; Lcur[1] += 1; }
-            }
-        }
-
-        { // lower line.
-            iv2 delta; iv2_iv2_sub_iv2(delta, tri[ts2], tri[ts1]); iv2_map(delta, abs);
-            delta[1] = -delta[1];
-            // iv2 slope = { a[0] < b[0] ? 1 : -1, a[1] < b[1] ? 1 : -1 };
-
-            i32 err = delta[0] + delta[1];
-            iv2 cur; iv2_cpy(cur, tri[ts1]);
-
-            while(1)
-            {
-                for(i32 x = cur[0]; x < Lcur[0]; ++x)
-                {
-                    iv2 ccur; iv2_val(ccur, x, );
-                    mgv_render_color_val_t v = col_func(ccur);
-                    if(!v.discard) dput(f, v.value, ccur);
-                }
-
-                if(Lcur[0] == tri[ts2][0] && Lcur[1] == tri[ts2][1]) break;
-                // if(cur[0] == tri[ts2][0] && cur[1] == tri[ts2][1]) break;
-
-                i32 err2 = err << 1;
-                if(err2 >= delta[1]) { err += delta[1]; cur[0] += 1; }
-                if(err2 <= delta[0]) { err += delta[0]; cur[1] += 1; }
-
-                i32 Lerr2 = Lerr << 1;
-                if(Lerr2 >= Ldelta[1]) { Lerr += Ldelta[1]; Lcur[0] += Lslope[0]; }
-                if(Lerr2 <= Ldelta[0]) { Lerr += Ldelta[0]; Lcur[1] += 1; }
+                for(i32 x = a[0] + f * dx; x < )
+                f += sf;
+                Lf += Lsf;
             }
         }
     }
+
     dline(f, debug_colorgen_, tri[0], tri[1]);
-    // dline(f, debug_colorgen_, tri[1], tri[2]);
+    dline(f, debug_colorgen_, tri[1], tri[2]);
     dline(f, debug_colorgen_, tri[2], tri[0]);
+    dput(f, 0x00FF00FF, tri[0]);
+    dput(f, 0x00FF00FF, tri[1]);
+    dput(f, 0x00FF00FF, tri[2]);
 }
 
 static void zline(uint32_t* pbuf, float* zbuf, uint32_t col, uv3 a, uv3 b) { }

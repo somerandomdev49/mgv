@@ -83,8 +83,8 @@ void mgv_draw_buffer(mgv_buffer_t* buf)
     {
         fv4 out;
         pipeline_->vert_prog_(out, (uint8_t*)buf->data_ + buf->stride_ * i, NULL, NULL);
-        tri[tri_added][0] = (out[0] * 0.5 + 0.5) * frame_->width_;
-        tri[tri_added][1] = (out[1] * 0.5 + 0.5) * frame_->height_;
+        tri[tri_added][0] = (out[0] * 0.5 + 0.5) * (frame_->width_ - 1);
+        tri[tri_added][1] = (out[1] * 0.5 + 0.5) * (frame_->height_ - 1);
         ++tri_added;
         
         if(tri_added == 3)
@@ -125,7 +125,7 @@ void mgv_unload()
     frame_ = NULL;
 }
 
-#define MGV_MULT 3
+#define MGV_MULT 5
 void mgv_start(const char* title, mgv_update_func_t update)
 {
     SDL_Window* window = NULL;
@@ -139,14 +139,15 @@ void mgv_start(const char* title, mgv_update_func_t update)
 
     sdl_pixel_format_ = SDL_AllocFormat(SDL_PIXELFORMAT_RGBA8888);
 
+    update();
+    write_texture(texture);
+
     SDL_Event event;
     while(1)
     {
         SDL_PollEvent(&event);
         if(event.type == SDL_QUIT) break;
 
-        update();
-        write_texture(texture);
 
         SDL_RenderCopy(renderer, texture, NULL, NULL);
         SDL_RenderPresent(renderer);

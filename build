@@ -1,0 +1,2 @@
+#! /bin/sh
+gcc-10 test.c mgv-rend.c mgv.c -o main -lsdl2 -Wall -Wpedantic -Wno-unused
