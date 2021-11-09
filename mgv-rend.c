@@ -83,32 +83,62 @@ static void dtri(
     if(tri[1][1] > tri[2][1] || tri[1][0] > tri[2][0]) swap_u8_(&ts1, &ts2);
     if(tri[0][1] > tri[1][1] || tri[0][0] > tri[1][0]) swap_u8_(&ts0, &ts1);
 
-    iv2 a = tri[ts0], b = tri[ts1], c = tri[ts2];
+    iv2 a, b, c;
+    iv2_cpy(a, tri[ts0]);
+    iv2_cpy(b, tri[ts1]);
+    iv2_cpy(c, tri[ts2]);
 
     // long side on the right.
     if(b[0] < a[0] || b[0] < c[0])
     {
+        i32 Ldx = a[0] - c[0], Ldy = a[1] - c[1];
+        float Lfac = 0.0f, Lsfac = 1.0f / Ldy;
+
         // Fill the first triangle with flat bottom.
         {
-            i32 dx = a[0] - b[0], Ldx = a[0] - c[0];
-            i32 dy = a[1] - b[1], LdY = a[1] - c[1];
-            float sf = 1.0f / dy, Lsf = 1.0f / Ldy;
-            float f = 0.0f, Lf = 0.0f;
+            i32 dx = a[0] - b[0];
+            i32 dy = a[1] - b[1];
+            float sfac = 1.0f / dy, fac = 0.0f;
             for(i32 y = a[1]; y < b[1]; ++y)
             {
-                for(i32 x = a[0] + f * dx; x < )
-                f += sf;
-                Lf += Lsf;
+                float e = a[0] + Lfac * Ldx;
+                for(i32 x = a[0] + fac * dx; x < e; ++x)
+                {
+                    iv2 pos = { x, y };
+                    mgv_render_color_val_t v = col_func(pos);
+                    if(!v.discard) dput(f, v.value, pos);
+                }
+
+                fac += sfac;
+                Lfac += Lsfac;
+            }
+        }
+        // Second triangle with flat top.
+        {
+            i32 dx = b[0] - c[0];
+            i32 dy = b[1] - c[1];
+            float sfac = 1.0f / dy, fac = 0.0f;
+            for(i32 y = b[1]; y < c[1]; ++y)
+            {
+                float e = a[0] + Lfac * Ldx;
+                for(i32 x = b[0] + fac * dx; x <= e; ++x)
+                {
+                    iv2 pos = { x, y };
+                    mgv_render_color_val_t v = col_func(pos);
+                    if(!v.discard) dput(f, v.value, pos);
+                }
+                fac += sfac;
+                Lfac += Lsfac;
             }
         }
     }
 
-    dline(f, debug_colorgen_, tri[0], tri[1]);
-    dline(f, debug_colorgen_, tri[1], tri[2]);
-    dline(f, debug_colorgen_, tri[2], tri[0]);
-    dput(f, 0x00FF00FF, tri[0]);
-    dput(f, 0x00FF00FF, tri[1]);
-    dput(f, 0x00FF00FF, tri[2]);
+    // dline(f, debug_colorgen_, tri[0], tri[1]);
+    // dline(f, debug_colorgen_, tri[1], tri[2]);
+    // dline(f, debug_colorgen_, tri[2], tri[0]);
+    // dput(f, 0x00FF00FF, tri[0]);
+    // dput(f, 0x00FF00FF, tri[1]);
+    // dput(f, 0x00FF00FF, tri[2]);
 }
 
 static void zline(uint32_t* pbuf, float* zbuf, uint32_t col, uv3 a, uv3 b) { }

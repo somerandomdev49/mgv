@@ -125,7 +125,7 @@ void mgv_unload()
     frame_ = NULL;
 }
 
-#define MGV_MULT 5
+#define MGV_MULT 1
 void mgv_start(const char* title, mgv_update_func_t update)
 {
     SDL_Window* window = NULL;
@@ -139,15 +139,14 @@ void mgv_start(const char* title, mgv_update_func_t update)
 
     sdl_pixel_format_ = SDL_AllocFormat(SDL_PIXELFORMAT_RGBA8888);
 
-    update();
-    write_texture(texture);
-
     SDL_Event event;
     while(1)
     {
         SDL_PollEvent(&event);
         if(event.type == SDL_QUIT) break;
 
+        update();
+        write_texture(texture);
 
         SDL_RenderCopy(renderer, texture, NULL, NULL);
         SDL_RenderPresent(renderer);
